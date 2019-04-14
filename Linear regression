@@ -1,0 +1,215 @@
+#2D linear  regression by gradient descent
+#data set = training set + testing set. n=10. Neglect cross validation
+#1. plot interation times - bias & variance
+#2. plot prediction function and data set
+#3. adjust to more complex model or regularization term
+
+import matplotlib.pyplot as plt
+import numpy as np
+import math
+
+#training set
+X=[0., 2., 4., 6.]
+Y=[2., 6., 8., 8.]
+#testing set
+X1=[1., 3., 5., 7.]
+Y1=[4., 7., 8., 9.]         
+n=min(len(X),len(Y))#data number
+
+#feature rescale
+def norm(X):
+    mu=sum(X)/len(X)
+    s=0
+    for i in range(len(X)):
+        s=s+X[i]**2
+    sig=math.sqrt(s/len(X))
+    for i in range(len(X)):
+        X[i]=round((X[i]-mu)/sig,4)
+
+#norm(X); norm(Y); norm(X1); norm(Y1);
+#print(norm(X), norm(Y), norm(X1), norm(Y1))
+
+#linear model
+b=0; w=0;
+
+def f(b,w,x):
+    return b+w*x
+
+def loss(b,w,t):
+    L=0; lam=0
+    if t==0:
+        for i in range(n):
+            L=L+(f(b,w,X[i])-Y[i])**2+lam*w**2
+    elif t==1:
+        for i in range(n):
+            L=L+(f(b,w,X[i])-Y[i])**2
+    else:
+        for i in range(n):
+            L=L+(f(b,w,X1[i])-Y1[i])**2
+    return L
+        
+D=0.0001; r=0.001; it=1000
+bias=[]; var=[]
+for i in range(it):
+    bt=b; wt=w
+    
+    b=b-r*(loss(bt+D,wt,0)-loss(bt,wt,0))/D
+    w=w-r*(loss(bt,wt+D,0)-loss(bt,wt,0))/D
+    bias.append(loss(b,w,1))
+    var.append(loss(b,w,2))
+
+plt.plot(list(range(it)),bias,'b',list(range(it)),var,'gray')
+plt.show()
+
+xp=np.linspace(min(X),max(X),2)
+yp=np.zeros(len(xp))
+for i in range(len(xp)):
+    yp[i]=f(b,w,xp[i])
+plt.plot(X,Y,'ro',X1,Y1,'go',xp,yp,'m')
+
+print("bias={0}".format(round(bias[it-1],4)), "var={0}".format(round(var[it-1],4)))
+print("b={0} ".format(round(b,4)), "w={0} ".format(round(w,4)))
+
+#linear model with Adagrad
+b=0; w=0;
+
+def f(b,w,x):
+    return b+w*x
+
+def loss(b,w,t):
+    L=0; lam=0
+    if t==0:
+        for i in range(n):
+            L=L+(f(b,w,X[i])-Y[i])**2+lam*w**2
+    elif t==1:
+        for i in range(n):
+            L=L+(f(b,w,X[i])-Y[i])**2
+    else:
+        for i in range(n):
+            L=L+(f(b,w,X1[i])-Y1[i])**2
+    return L
+        
+D=0.0001; r=0.01; s1=0; s2=0; it=10000
+bias=[]; var=[]
+for i in range(it):
+    bt=b; wt=w
+    
+    s1=s1+((loss(bt+D,wt,0)-loss(bt,wt,0))/D)**2
+    s2=s2+((loss(bt,wt+D,0)-loss(bt,wt,0))/D)**2
+    
+    b=b-r*(loss(bt+D,wt,0)-loss(bt,wt,0))/D/math.sqrt(s1)
+    w=w-r*(loss(bt,wt+D,0)-loss(bt,wt,0))/D/math.sqrt(s2)
+    bias.append(loss(b,w,1))
+    var.append(loss(b,w,2))
+
+plt.plot(list(range(it)),bias,'b',list(range(it)),var,'gray')
+plt.show()
+
+xp=np.linspace(min(X),max(X),2)
+yp=np.zeros(len(xp))
+for i in range(len(xp)):
+    yp[i]=f(b,w,xp[i])
+plt.plot(X,Y,'ro',X1,Y1,'go',xp,yp,'m')
+
+print("bias={0}".format(round(bias[it-1],4)), "var={0}".format(round(var[it-1],4)))
+print("b={0} ".format(round(b,4)), "w={0} ".format(round(w,4)))
+
+#quadratic model
+b=0; w1=0; w2=0;
+
+def fq(b,w1,w2,x):
+    return b+w1*x+w2*x**2
+
+def lossq(b,w1,w2,t):
+    L=0; lam=0
+    if t==0:
+        for i in range(n):
+            L=L+(fq(b,w1,w2,X[i])-Y[i])**2+lam*w**2
+    elif t==1:
+        for i in range(n):
+            L=L+(fq(b,w1,w2,X[i])-Y[i])**2
+    else:
+        for i in range(n):
+            L=L+(fq(b,w1,w2,X1[i])-Y1[i])**2
+    return L
+        
+D=0.0001; r=0.0001; it=2000
+bias=[]; var=[]
+for i in range(it):
+    bt=b; w1t=w1*1; w2t=w2*1
+    b=b-r*(lossq(bt+D,w1t,w2t,0)-lossq(b,w1t,w2t,0))/D
+    w1=w1-r*(lossq(bt,w1t+D,w2t,0)-lossq(bt,w1t,w2t,0))/D
+    w2=w2-r*(lossq(bt,w1t,w2t+D,0)-lossq(bt,w1t,w2t,0))/D
+    bias.append(lossq(b,w1,w2,1))
+    var.append(lossq(b,w1,w2,2))
+
+plt.plot(list(range(it)),bias,'b',list(range(it)),var,'gray')
+plt.show()
+
+xp=np.linspace(min(X),max(X),100)
+yp=np.zeros(len(xp))
+for i in range(len(xp)):
+    yp[i]=fq(b,w1,w2,xp[i])
+plt.plot(X,Y,'ro',X1,Y1,'go',xp,yp,'m')
+
+print("bias={0}".format(round(bias[it-1],4)), "var={0}".format(round(var[it-1],4)))
+print("b={0} ".format(round(b,4)), "w1={0} ".format(round(w1,4)),"w2={0} ".format(round(w2,4)))
+
+#k-times model
+k=2;
+b=0; w=np.zeros(k);
+
+def F(b,w,x):
+    s=b
+    for i in range(k):
+        s=s+w[i]*x**(i+1)
+    return s
+
+def LOSS(b,w,t):
+    L=0; lam=0
+    if t==0:
+        for i in range(n):
+            L=L+(F(b,w,X[i])-Y[i])**2+lam*(w.dot(w))
+    elif t==1:
+        for i in range(n):
+            L=L+(F(b,w,X[i])-Y[i])**2
+    else:
+        for i in range(n):
+            L=L+(F(b,w,X1[i])-Y1[i])**2
+    return L
+        
+D=0.0001; r=0.0001; it=2000
+bias=[]; var=[]
+for i in range(it):
+    bt=b*1; wt=w*1
+    b=b-r*(LOSS(bt+D,wt,0)-LOSS(bt,wt,0))/D
+    for j in range(k):
+        wtt=wt*1
+        wtt[j]=wt[j]+D
+        w[j]=w[j]-r*(LOSS(bt,wtt,0)-LOSS(bt,wt,0))/D
+    bias.append(LOSS(b,w,1))
+    var.append(LOSS(b,w,2))
+
+plt.plot(list(range(it)),bias,'b',list(range(it)),var,'gray')
+plt.show()
+
+xp=np.linspace(min(X),max(X),100)
+yp=np.zeros(len(xp))
+for i in range(len(xp)):
+    yp[i]=F(b,w,xp[i])
+plt.plot(X,Y,'ro',X1,Y1,'go',xp,yp,'m')
+
+print("bias={0}".format(round(bias[it-1],4)), "var={0}".format(round(var[it-1],4)))
+print("b={0} ".format(round(b,4)))
+for i in range(k):
+    print("w{0}={1} ".format(i+1,round(w[i],4)))
+    
+pix = 256
+bh = np.linspace(2, 4, pix)
+wh = np.linspace(0, 2, pix)
+B,W = np.meshgrid(bh, wh)
+plt.contourf(B, W, loss(B,W,0), 512, alpha=0.75, cmap=plt.cm.hot)
+    #block color  (density, transparency, color)
+C=plt.contour(B, W, loss(B,W,0), 8, colors='black')
+    #line color (density, color)
+plt.clabel(C, inline=True, fontsize=10) #line color, number cover line?, fontsize
