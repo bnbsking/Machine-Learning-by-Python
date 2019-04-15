@@ -1,0 +1,119 @@
+#2D generative classification by Gaussian hypothesis
+#data set = training set + testing set. n=10. Neglect cross validation
+#1. plot interation times - bias & variance
+#2. plot prediction function and data set
+#3. adjust to more complex model or regularization term
+
+import matplotlib.pyplot as plt
+import numpy as np
+import math
+
+#training set
+Tra1=np.array([ [[1.0,2.0]], [[1.0,3.0]], [[2.0,4.0]], [[3.0,3.0]], [[3.0,5.0]] ]); n1=len(Tra1)
+X1=np.zeros(n1); Y1=np.zeros(n1)
+for i in range(n1):
+    X1[i]=Tra1[i][0][0]
+    Y1[i]=Tra1[i][0][1]
+
+Tra2=np.array([ [[2.5,1.5]], [[3.5,2.0]], [[4.5,1.5]], [[4.0,1.0]], [[5.0,3.0]] ]); n2=len(Tra2)
+X2=np.zeros(n2); Y2=np.zeros(n2)
+for i in range(n2):
+    X2[i]=Tra2[i][0][0]
+    Y2[i]=Tra2[i][0][1]
+
+#testing set
+Tes1=np.array([ [[1.5,3.5]], [[4.0,2.5]], [[3.5,5.0]], [[1.5,6.0]], [[2.5,6.0]] ]); n3=len(Tes1)
+X3=np.zeros(n3); Y3=np.zeros(n3)
+for i in range(n3):
+    X3[i]=Tes1[i][0][0]
+    Y3[i]=Tes1[i][0][1]
+
+Tes2=np.array([ [[1.5,1.0]], [[2.5,3.0]], [[3.5,3.0]], [[4.5,2.0]], [[5.0,4.0]] ]); n4=len(Tes2)
+X4=np.zeros(n4); Y4=np.zeros(n4)
+for i in range(n4):
+    X4[i]=Tes2[i][0][0]
+    Y4[i]=Tes2[i][0][1]
+    
+plt.plot(X1,Y1,'ro',X2,Y2,'go',X3,Y3,'r^',X4,Y4,'g^')
+plt.show()
+
+def trans(A):
+    return A.transpose()*1.0
+
+def det(A):
+    return A[0][0]*A[1][1]-A[1][0]*A[0][1]*1.0
+
+def inv(A):
+    return [[A[1][1],-A[0][1]],[-A[1][0],A[0][0]]]/det(A)*1.0
+
+def Gauss(M,S,X):                                                                           #Define 2D Gauss function
+    o1=trans(X-M)
+    o2=inv(S)
+    o3=-0.5*o1.dot(o2.dot(X-M))
+    o4=o3[0][0]
+    return 1/(2*math.pi*math.sqrt(det(S)))*math.e**(o4)
+   
+mu1=np.array([[np.mean(X1)], [np.mean(Y1)]])
+s1=np.zeros(shape=(2,2))
+for i in range(n1):
+    colvec=trans(Tra1[i])-mu1   
+    s1=s1+colvec.dot(trans(colvec))
+s1=s1/n1
+
+mu2=np.array([[np.mean(X2)], [np.mean(Y2)]])
+s2=np.zeros(shape=(2,2))
+for i in range(n2):
+    colvec=trans(Tra2[i])-mu2
+    s2=s2+colvec.dot(trans(colvec))
+s2=s2/n2
+
+s=(n1*s1+n2*s2)/(n1+n2)
+print(mu1,"\n",mu2,"\n",s)
+
+
+def cla(mu1,mu2,s,X):
+    p=(Gauss(mu1,s,X)*n1/(n1+n2))/(Gauss(mu1,s,X)*n1/(n1+n2)+Gauss(mu2,s,X)*n2/(n1+n2))
+    #print(p)
+    if p>=0.5:
+        return 1
+    else:
+        return 2
+        
+var=0
+for i in range(n3):
+    if cla(mu1,mu2,s,trans(Tes1[i]))==2:
+        var=var+1
+        print("classify variance at Tes1[{0}]".format(i))
+for i in range(n4):
+    if cla(mu1,mu2,s,trans(Tes2[i]))==1:
+        var=var+1
+        print("classify variance at Tes2[{0}]".format(i))
+
+print("total variance={0}".format(var))
+print("accuracy={0}".format(1-var/(n3+n4)))
+
+
+a=s[0][0]; b=s[0][1]; c=s[1][0]; d=s[1][1]
+m1=mu1[0][0]; m2=mu1[1][0]; m3=mu2[0][0]; m4=mu2[1][0]
+
+def g(m1,m2,m3,m4,a,b,c,d,x1,x2):
+    expo1=(d*(x1-m1)**2+(-b-c)*(x1-m1)*(x2-m2)+a*(x2-m2)**2)/(a*d-b*c)
+    p1=1/(2*math.pi*math.sqrt(a*d-b*c))*math.e**(expo1)
+    expo2=(d*(x1-m3)**2+(-b-c)*(x1-m3)*(x2-m4)+a*(x2-m4)**2)/(a*d-b*c)
+    p2=1/(2*math.pi*math.sqrt(a*d-b*c))*math.e**(expo2)
+    p=(p1*n1/(n1+n2))/( p1*n1/(n1+n2)+p2*n2/(n1+n2) )
+    return p
+        
+pix = 256; am=0.5
+x = np.linspace(0.5, 5.5, pix)
+y = np.linspace(0.5, 6.5, pix)
+X,Y= np.meshgrid(x, y)
+plt.xlabel("x"); plt.ylabel("y")
+plt.plot(X1,Y1,'bo',X2,Y2,'go',X3,Y3,'b^',X4,Y4,'g^')
+plt.contourf(X, Y, g(m1,m2,m3,m4,a,b,c,d,X,Y), 1, alpha=0.5, cmap=plt.cm.jet)
+    #block color  (density, transparency, color)
+C=plt.contour(X, Y, g(m1,m2,m3,m4,a,b,c,d,X,Y), 1, colors='black')
+    #line color (density, color)
+plt.clabel(C, inline=True, fontsize=10) #line color, number cover line?, fontsize
+
+
