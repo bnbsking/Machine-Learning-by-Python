@@ -1,0 +1,93 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import math
+
+#training set
+Tra=np.array([ [2., 1., 1., 1], [3., 1., 1., 1],
+     [1., 2., 1., 2], [1., 3., 1., 2], [1., 1., 2., 3], [1., 1., 3., 3]  ])
+n=len(Tra)
+
+from mpl_toolkits.mplot3d import Axes3D
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+x1=[]; y1=[]; z1=[]; x2=[]; y2=[]; z2=[]; x3=[]; y3=[]; z3=[] 
+for i in range(n):
+    if Tra[i][3]==1:
+        x1.append(Tra[i][0])
+        y1.append(Tra[i][1])
+        z1.append(Tra[i][2])
+    elif Tra[i][3]==2:
+        x2.append(Tra[i][0])
+        y2.append(Tra[i][1])
+        z2.append(Tra[i][2])
+    else:
+        x3.append(Tra[i][0])
+        y3.append(Tra[i][1])
+        z3.append(Tra[i][2])
+
+ax.set_xlabel('X Label'); ax.set_ylabel('Y Label'); ax.set_zlabel('Z Label')
+ax.scatter(x1, y1, z1, c='r', marker='o')
+ax.scatter(x2, y2, z2, c='b', marker='o')
+ax.scatter(x3, y3, z3, c='g', marker='o')
+plt.show()
+
+def soft(tp,x1,x2,x3):
+    y=np.zeros(3); s=0
+    for i in range(3):
+        y[i]=np.exp(tp[i][0]+tp[i][1]*x1+tp[i][2]*x2+tp[i][3]*x3)
+        s=s+y[i]
+    y=y/s
+    return y
+
+def cross(y,c):
+    if c==1:
+        return [-math.log(y[0]), 0., 0.]
+    elif c==2:
+        return [0., -math.log(y[1]), 0.]
+    else:
+        return [0., 0., -math.log(y[2])]
+
+def loss(tp,Tra):
+    l=np.array([0, 0, 0])
+    for i in range(n):
+        l=l+np.array(cross(soft(tp,Tra[i][0],Tra[i][1],Tra[i][2]),Tra[i][3]))
+    return l[0]+l[1]+l[2]
+
+tp=np.array([ [0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0.,0.] ])
+D=0.0001; lr=0.1; it=1000
+
+for k in range(it):
+    tp_=tp*1.0
+    for i in range(3):
+        for j in range(4):
+            tp_0=tp_*1.0
+            tp_0[i][j]=tp_0[i][j]+D
+            tp[i][j]=round(tp[i][j]-lr*(loss(tp_0,Tra)-loss(tp_,Tra))/D,7)
+
+print(tp,"\n")
+
+def classify(tp,x1,x2,x3):
+    y=soft(tp,x1,x2,x3)
+    #print(y)
+    s=y[0]; index=0;
+    for i in range(1,3):
+        if y[i]>s:
+            s=y[i]; index=i
+    return index+1
+    #return s
+
+bias=0
+for i in range(n):
+    if classify(tp,Tra[i][0],Tra[i][1],Tra[i][2]) != Tra[i][3]:
+        bias+=1
+        print("classify error at Tra[{0}]".format(i))
+print("total bias={0}".format(bias))
+
+print(classify(tp,1.,2.,3.))
+print(classify(tp,1.,3.,2.))
+print(classify(tp,2.,1.,3.))
+print(classify(tp,2.,3.,1.))
+print(classify(tp,3.,1.,2.))
+print(classify(tp,3.,2.,1.))
