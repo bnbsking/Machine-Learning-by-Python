@@ -1,0 +1,7 @@
+"# sigmoid/tanh: Glorot/Xavier initialization\n",
+    "# ReLU He initialization\n",
+    "\n",
+    "from tensorflow.keras import initializers\n",
+    "\n",
+    "layers.Dense(100, 'relu', False, initializers.glorot_normal()) # default\n",
+    "layers.Dense(100, 'relu', False, initializers.he_normal())"
