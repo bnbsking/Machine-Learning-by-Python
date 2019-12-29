@@ -1,0 +1,97 @@
+import tensorflow as tf
+from tensorflow.keras import Input, layers, Model, utils
+from tensorflow.keras import optimizers, losses, metrics, callbacks
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import pandas as pd
+
+# Load and view data
+data = pd.read_csv("kc_house_data.csv")
+#pd.options.display.max_columns = 25
+#data.head(), data.tail(), data, data.dtypes, data.shape #(21613,21)
+n = data.shape[0]
+
+# Data preprocessing
+# 1 date stringToInt and drop trivial data
+data['year'] = pd.to_numeric(data['date'].str.slice(0,4))
+data['month'] = pd.to_numeric(data['date'].str.slice(4,6))
+data['day'] = pd.to_numeric(data['date'].str.slice(6,8))
+data.drop(['id','date'], axis="columns", inplace=True) #inplace: never use
+data.head()
+
+# 2 split data into training, validation and testing
+index = np.random.permutation(n) 
+train, val, test = data.loc[index[:int(n*0.6)]], data.loc[index[int(n*0.6):int(n*0.8)]], data.loc[index[int(n*0.8):]]
+#loc:select row
+
+#3 normalization for training and validation
+tv = pd.concat([train, val])
+train, val, test = (train-tv.mean())/tv.std(), (val-tv.mean())/tv.std(), (test-tv.mean())/tv.std()
+
+#4 input-output spliting for training and validation in numpy form
+xTrain, yTrain = np.array(train.drop('price', axis="columns")), np.array(train['price'])
+xVal, yVal = np.array(val.drop('price', axis="columns")), np.array(val['price'])
+xTest, yTest = np.array(test.drop('price', axis="columns")), np.array(test['price'])
+
+xTrain.shape, yTrain.shape, xVal.shape, yVal.shape
+
+inputs = Input(shape=(21,))
+h1 = layers.Dense(64, activation="relu")(inputs)
+h2 = layers.Dense(64, activation="relu")(h1)
+outputs = layers.Dense(1)(h2)
+
+myModel = Model(inputs=inputs, outputs=outputs)
+utils.plot_model(myModel, to_file = "structureDNN.png")
+
+myModel.summary()
+
+myModel.compile(optimizers.Adam(0.01), loss=losses.MeanSquaredError(), metrics=[metrics.MeanAbsoluteError()])
+try:
+    os.makedirs("lab2-logs/models/")
+except:
+    pass
+log_dir = os.path.join("lab2-logs","model-1")
+myModel_cbk = callbacks.TensorBoard(log_dir=log_dir)
+myModel_mckp = callbacks.ModelCheckpoint("lab2-logs/models/"+"/Best-model-1.h5", monitor="val_mean_absolute_error",\
+                                         save_best_only=True, mode="min")
+                                         
+history = myModel.fit(xTrain, yTrain, batch_size=64, epochs=300, validation_data=(xVal,yVal),\
+                      callbacks=[myModel_cbk, myModel_mckp])
+                    
+history.history.keys()
+
+plt.title("Regression_mean squared error")
+plt.xlabel('epochs')
+plt.ylabel('loss')
+plt.plot(history.history['loss'], label='train')
+plt.plot(history.history['val_loss'], label='validation')
+plt.legend(loc='upper right')
+
+plt.title("Regression_mean absolute error")
+plt.xlabel('epochs')
+plt.ylabel('metrics')
+plt.plot(history.history['mean_absolute_error'], label='train')
+plt.plot(history.history['val_mean_absolute_error'], label='validation')
+plt.legend(loc="upper right")
+
+yPred = np.reshape( myModel.predict(xTest) *tv.std()['price']+tv.mean()['price'], yTest.shape)
+yTest_ = yTest*tv.std()['price']+tv.mean()['price']
+percentageError = np.mean(np.abs( yTest_ - yPred)/np.mean(yTest_))*100
+print("percentageError:{}%".format(percentageError))
+
+myModel.load_weights("lab2-logs/models/Best-model-1.h5")
+%load_ext tensorboard
+%tensorboard --logdir lab2-logs
+
+###################################Overfitting: decrease layers, neurons, dropout, weight regularization, add more data
+# myModel_3: weights regularization
+
+inputs_3 = Input(shape=(21,))
+h1_3 = layers.Dense(64, kernel_regularizer=tf.keras.regularizers.l2(0.001), activation="relu")(inputs_3)
+h2_3 = layers.Dense(64, kernel_regularizer=tf.keras.regularizers.l2(0.001), activation="relu")(h1_3)
+outputs_3 = layers.Dense(1)(h2_3)
+
+myModel_3 = Model(inputs=inputs_3, outputs=outputs_3)
+utils.plot_model(myModel_3, to_file = "structureDNN_3.png")
+myModel_3.summary()
