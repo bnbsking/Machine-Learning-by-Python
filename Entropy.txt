@@ -1,0 +1,8 @@
+組態g1 混合 組態g2 排列數 g1g2
+亂度s1 混和 亂度s2 總亂度 s1+s2
+-> s = log g = p(g)
+組態分布期望值 E(g(x)) = sum_x(g(x)*p(g(x))) =  sum_x(g(x) log(g(x)))
+
+單一機率分布p(x), where 0<p(x)<1, and sum_x(p(x))=1
+期望值 E(p) = -sum_x(p(x) log(p(x))) 
+
