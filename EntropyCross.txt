@@ -26,3 +26,7 @@ Cross Entropy: Difference from D1 to D2
 + tree_height2 = 1/prob2
 -> CE = sigma -p1*log(p2)
 
+Why not MSE:
+0<=y_pred<=1 for classification
+y_true=1
+decay loss curve 
